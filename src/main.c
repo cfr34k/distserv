@@ -25,7 +25,6 @@
 #define max(a, b) ((a > b) ? a : b)
 
 int running = 1;
-short port = 1234;
 
 // signal handler for SIGTERM, SIGINT, etc.
 // sets the flag for a clean shutdown
@@ -102,7 +101,57 @@ void fsleep(float t) {
 	nanosleep(&ts, NULL);
 }
 
-int main(void)
+int parse_cmdline(int argc, char **argv, uint16_t *port, char **filename)
+{
+	int opt;
+	long larg;
+
+	// default values
+	*port = 1234;
+
+	while((opt = getopt(argc, argv, "p:")) != -1) {
+		switch(opt) {
+			case 'p':
+				errno = 0;
+				larg = strtol(optarg, NULL, 10);
+
+				if(errno != 0) {
+					LOG(LVL_ERR, "%l is not a valid integer.", optarg);
+					return -1;
+				}
+
+				if(larg < 1 || larg > 65535) {
+					LOG(LVL_ERR, "Port number is out of range [1, 65535].", optarg);
+					return -1;
+				}
+
+				*port = (uint16_t)larg;
+				break;
+			default:
+				// unknown option
+				return -1;
+		}
+	}
+
+	if(optind >= argc) {
+		// no non-option arguments left, but needed
+		LOG(LVL_ERR, "Too few arguments.");
+		return -1;
+	}
+
+	*filename = argv[optind];
+
+	return 0;
+}
+
+void show_usage(char *progname)
+{
+	fprintf(stderr, "\nUsage: %s [-p <port>] <filename>\n\n", progname);
+	fprintf(stderr, "port\t\t Port to use for incoming connections (default: 1234)\n");
+	fprintf(stderr, "filename\t Input data source (FIFO etc.), use '-' for stdin\n");
+}
+
+int main(int argc, char **argv)
 {
 	int ls = -1;
 	int i;
@@ -116,8 +165,20 @@ int main(void)
 	int rdata_cur_len = 0;
 	int nfds = 0;
 
+	char *filename;
+	uint16_t port;
+
 
 	logger_init();
+
+	// parse command line
+	r = parse_cmdline(argc, argv, &port, &filename);
+	if(r < 0) {
+		LOG(LVL_ERR, "Failed to parse command line.");
+		show_usage(argv[0]);
+		return EXIT_FAILURE;
+	}
+
 	init_signal_handlers();
 
 	ls = listen_socket(port);
