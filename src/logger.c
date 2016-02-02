@@ -114,7 +114,7 @@ void logger_log(int level, const char *format, ...) {
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  strftime(timebuf, 32, "%Y-%M-%d %H:%M:%S.%%03d", localtime(&(tv.tv_sec)));
+  strftime(timebuf, 32, "%Y-%m-%d %H:%M:%S.%%03d", localtime(&(tv.tv_sec)));
   snprintf(timebuf2, 32, timebuf, tv.tv_usec/1000);
 
 	if(level >= LVL_DUMP) {
