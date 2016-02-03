@@ -1,8 +1,8 @@
 DistServ
 ========
 
-This is a TCP Server which reads data from stdin and forwards it to each
-connected client.
+This is a TCP Server which reads data from stdin or a file-like source and
+forwards it to each connected client.
 
 Originally, this was developed as a notification broadcaster for the
 [Freifunk-Bot](https://github.com/Bytewerk/freifunk_bot) project, however, as
@@ -18,9 +18,9 @@ distserv [-p <port>] filename
 You can specify the port number to listen on using the `-p <port>` switch. The
 default port is 1234.
 
-The only required argument is the `filename`. This can be either `-` or the
-path to a regular file, FIFO or socket. Distserv will read from the file until
-EOF is encountered.
+The only required argument is the `filename`. This can be either `-` for stdin
+or the path to a regular file, FIFO or socket. Distserv will read from the file
+until EOF is encountered.
 
 If a FIFO or socket is specified, distserv will re-open the file on EOF. This
 is useful when a “status broadcaster” should be implemented, using a source
