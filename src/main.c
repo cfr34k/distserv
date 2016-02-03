@@ -68,7 +68,7 @@ int listen_socket(int listen_port)
 	a.sin_port = htons(listen_port);
 	a.sin_family = AF_INET;
 	if (bind(s, (struct sockaddr *) &a, sizeof(a)) == -1) {
-		LOG(LVL_DEBUG, "bind failed: %d = %s", errno, strerror(errno));
+		LOG(LVL_ERR, "bind failed: %d = %s", errno, strerror(errno));
 		close(s);
 		return -1;
 	}
@@ -165,6 +165,8 @@ int main(int argc, char **argv)
 	int rdata_cur_len = 0;
 	int nfds = 0;
 
+	int should_reopen;
+
 	char *filename;
 	uint16_t port;
 
@@ -179,10 +181,40 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	// determine type of input file
+	if(strcmp(filename, "-") == 0) {
+		// use stdin, does not need to be opened
+		input_fd = 0;
+		should_reopen = 0;
+	} else {
+		struct stat st;
+
+		// check for FIFO or sockets (will be reopened on close)
+		r = stat(filename, &st);
+		if(r == -1) {
+			LOG(LVL_ERR, "Failed to stat('%s'): %i = %s!", filename, errno, strerror(errno));
+			return EXIT_FAILURE;
+		}
+
+		if(S_ISFIFO(st.st_mode) || S_ISSOCK(st.st_mode)) {
+			should_reopen = 1;
+		} else {
+			should_reopen = 0;
+		}
+
+		// initial open
+		input_fd = open(filename, O_RDONLY);
+		if(input_fd == -1) {
+			LOG(LVL_ERR, "Cannot open('%s', O_RDONLY): %i = %s!", filename, errno, strerror(errno));
+			return EXIT_FAILURE;
+		}
+	}
+
 	init_signal_handlers();
 
 	ls = listen_socket(port);
 	if(ls == -1) {
+		close(input_fd);
 		return EXIT_FAILURE;
 	}
 
@@ -191,12 +223,16 @@ int main(int argc, char **argv)
 	}
 
 	while(running) {
-		// reopen the FIFO if it is closed. FIFOs are blocking if there is no writer.
+		// check if input was closed. If it was a FIFO or socket, reopen it, else quit.
 		if(input_fd == -1) {
-			input_fd = open("distserv.fifo", 0);
-			if(input_fd == -1) {
-				LOG(LVL_ERR, "Cannot open input FIFO for reading: %i = %s!", errno, strerror(errno));
-				return EXIT_FAILURE;
+			if(should_reopen) {
+				input_fd = open(filename, O_RDONLY);
+				if(input_fd == -1) {
+					LOG(LVL_ERR, "Cannot open('%s', O_RDONLY) again: %i = %s!", filename, errno, strerror(errno));
+					break;
+				}
+			} else {
+				break;
 			}
 		}
 
