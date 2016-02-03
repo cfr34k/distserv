@@ -1,3 +1,13 @@
+/*
+ * vim: sw=2 ts=2 expandtab
+ *
+ * "THE PIZZA-WARE LICENSE" (derived from "THE BEER-WARE LICENCE"):
+ * Thomas Kolb <cfr34k@tkolb.de> wrote this file. As long as you retain this
+ * notice you can do whatever you want with this stuff. If we meet some day,
+ * and you think this stuff is worth it, you can buy me a pizza in return.
+ * - Thomas Kolb
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
